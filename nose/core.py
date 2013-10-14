@@ -117,11 +117,18 @@ class TestProgram(unittest.TestProgram):
             argv=argv, testRunner=testRunner, testLoader=testLoader,
             **extra_args)
 
+    def getAllConfigFiles(self, env=None):
+        env = env or {}
+        if env.get('NOSE_IGNORE_CONFIG_FILES', False):
+            return []
+        else:
+            return all_config_files()
+
     def makeConfig(self, env, plugins=None):
         """Load a Config, pre-filled with user config files if any are
         found.
         """
-        cfg_files = all_config_files()
+        cfg_files = self.getAllConfigFiles(env)
         if plugins:
             manager = PluginManager(plugins=plugins)
         else:
@@ -237,14 +244,21 @@ class TestProgram(unittest.TestProgram):
 
     def usage(cls):
         import nose
-        if hasattr(nose, '__loader__'):
+        try:
             ld = nose.__loader__
-            if hasattr(ld, 'zipfile'):
-                # nose was imported from a zipfile
-                return ld.get_data(
-                        os.path.join(ld.prefix, 'nose', 'usage.txt'))
-        return open(os.path.join(
-                os.path.dirname(__file__), 'usage.txt'), 'r').read()
+            text = ld.get_data(os.path.join(
+                os.path.dirname(__file__), 'usage.txt'))
+        except AttributeError:
+            f = open(os.path.join(
+                os.path.dirname(__file__), 'usage.txt'), 'r')
+            try:
+                text = f.read()
+            finally:
+                f.close()
+        # Ensure that we return str, not bytes.
+        if not isinstance(text, str):
+            text = text.decode('utf-8')
+        return text
     usage = classmethod(usage)
 
 # backwards compatibility

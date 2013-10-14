@@ -143,7 +143,7 @@ else:
                     self.distribution.tests_require)
 
             ei_cmd = self.get_finalized_command("egg_info")
-            argv = ['nosetests', ei_cmd.egg_base] 
+            argv = ['nosetests', '--where', ei_cmd.egg_base] 
             for (option_name, cmd_name) in self.option_to_cmds.items():
                 if option_name in option_blacklist:
                     continue
@@ -155,9 +155,14 @@ else:
 
         def cfgToArg(self, optname, value):
             argv = []
-            if flag(value):
+            long_optname = '--' + optname
+            opt = self.__parser.get_option(long_optname)
+            if opt.action in ('store_true', 'store_false'):
+                if not flag(value):
+                    raise ValueError("Invalid value '%s' for '%s'" % (
+                        value, optname))
                 if _bool(value):
-                    argv.append('--' + optname)
+                    argv.append(long_optname)
             else:
-                argv.extend(['--' + optname, value])
+                argv.extend([long_optname, value])
             return argv

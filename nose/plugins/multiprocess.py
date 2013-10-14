@@ -195,13 +195,19 @@ class MultiProcess(Plugin):
                           help="Spread test run among this many processes. "
                           "Set a number equal to the number of processors "
                           "or cores in your machine for best results. "
+                          "Pass a negative number to have the number of "
+                          "processes automatically set to the number of "
+                          "cores. Passing 0 means to disable parallel "
+                          "testing. Default is 0 unless NOSE_PROCESSES is "
+                          "set. "
                           "[NOSE_PROCESSES]")
         parser.add_option("--process-timeout", action="store",
                           default=env.get('NOSE_PROCESS_TIMEOUT', 10),
                           dest="multiprocess_timeout",
                           metavar="SECONDS",
                           help="Set timeout for return of results from each "
-                          "test runner process. [NOSE_PROCESS_TIMEOUT]")
+                          "test runner process. Default is 10. "
+                          "[NOSE_PROCESS_TIMEOUT]")
         parser.add_option("--process-restartworker", action="store_true",
                           default=env.get('NOSE_PROCESS_RESTARTWORKER', False),
                           dest="multiprocess_restartworker",
@@ -234,6 +240,15 @@ class MultiProcess(Plugin):
             if Process is None:
                 self.enabled = False
                 return
+            # Negative number of workers will cause multiprocessing to hang.
+            # Set the number of workers to the CPU count to avoid this.
+            if workers < 0:
+                try:
+                    import multiprocessing
+                    workers = multiprocessing.cpu_count()
+                except NotImplementedError:
+                    self.enabled = False
+                    return
             self.enabled = True
             self.config.multiprocess_workers = workers
             t = float(options.multiprocess_timeout)
@@ -505,6 +520,7 @@ class MultiProcessTestRunner(TextTestRunner):
             for worker in workers:
                 if worker.is_alive():
                     worker.terminate()
+
             if thrownError: raise thrownError
             else: raise
 

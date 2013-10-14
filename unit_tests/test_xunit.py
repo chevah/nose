@@ -44,8 +44,8 @@ class TestEscaping(unittest.TestCase):
         utf16 = self.x._quoteattr(u'Ivan Krsti\u0107')[1:-1]
 
         if UNICODE_STRINGS:
-	    # If all internal strings are unicode, then _quoteattr shouldn't
-	    # have changed anything.
+            # If all internal strings are unicode, then _quoteattr shouldn't
+            # have changed anything.
             eq_(utf16, u'Ivan Krsti\u0107')
         else:
             # to avoid big/little endian bytes, assert that we can put it back:
@@ -131,12 +131,13 @@ class TestXMLOutputWithXML(unittest.TestCase):
             pass
         self.x.report(DummyStream())
         f = open(self.xmlfile, 'rb')
-        return f.read()
+        data = f.read()
         f.close()
+        return data
 
     def test_addFailure(self):
         test = mktest()
-        self.x.startTest(test)
+        self.x.beforeTest(test)
         try:
             raise AssertionError("one is not 'equal' to two")
         except AssertionError:
@@ -203,7 +204,7 @@ class TestXMLOutputWithXML(unittest.TestCase):
 
     def test_addError(self):
         test = mktest()
-        self.x.startTest(test)
+        self.x.beforeTest(test)
         try:
             raise RuntimeError("some error happened")
         except RuntimeError:
@@ -246,7 +247,7 @@ class TestXMLOutputWithXML(unittest.TestCase):
     def test_non_utf8_error(self):
         # See http://code.google.com/p/python-nose/issues/detail?id=395
         test = mktest()
-        self.x.startTest(test)
+        self.x.beforeTest(test)
         try:
             raise RuntimeError(chr(128)) # cannot encode as utf8 
         except RuntimeError:
@@ -275,6 +276,8 @@ class TestXMLOutputWithXML(unittest.TestCase):
         except RuntimeError:
             some_err = sys.exc_info()
 
+        self.x.startContext(None)
+
         # call addError without startTest
         # which can happen if setup() raises an error
         self.x.addError(test, some_err)
@@ -295,7 +298,7 @@ class TestXMLOutputWithXML(unittest.TestCase):
 
     def test_addSuccess(self):
         test = mktest()
-        self.x.startTest(test)
+        self.x.beforeTest(test)
         self.x.addSuccess(test, (None,None,None))
 
         result = self.get_xml_report()

@@ -3,6 +3,7 @@ import codecs
 import os
 import sys
 import unittest
+from nose.plugins.capture import Capture
 from nose.plugins.xunit import Xunit
 from nose.plugins.skip import Skip
 from nose.plugins import PluginTester
@@ -45,6 +46,22 @@ class TestXUnitPlugin(PluginTester, unittest.TestCase):
         assert '</testsuite>' in result
 
 
+class TestIssue134(PluginTester, unittest.TestCase):
+    activate = '--with-xunit'
+    args = ['-v','--xunit-file=%s' % xml_results_filename]
+    plugins = [Capture(), Xunit()]
+    suitepath = os.path.join(support, 'issue134')
+
+    def runTest(self):
+        print str(self.output)
+        f = open(xml_results_filename,'r')
+        result = f.read()
+        f.close()
+        print result
+        assert 'raise IOError(42, "test")' in result
+        assert 'tests="1" errors="1" failures="0" skip="0"' in result
+
+
 class TestIssue279(PluginTester, unittest.TestCase):
     activate = '--with-xunit'
     args = ['-v','--xunit-file=%s' % xml_results_filename]
@@ -59,3 +76,35 @@ class TestIssue279(PluginTester, unittest.TestCase):
         print result
         assert 'tests="1" errors="1" failures="0" skip="0"' in result
         assert "Exception: I would prefer not to" in result
+
+
+class TestIssue680(PluginTester, unittest.TestCase):
+    activate = '--with-xunit'
+    args = ['-v','--xunit-file=%s' % xml_results_filename]
+    plugins = [Xunit(), Skip()]
+    suitepath = os.path.join(support, 'issue680')
+
+    def runTest(self):
+        print str(self.output)
+        f = open(xml_results_filename,'r')
+        result = f.read()
+        f.close()
+        print result
+        assert 'tests="1" errors="0" failures="0" skip="0"' in result
+
+
+class TestIssue700(PluginTester, unittest.TestCase):
+    activate = '--with-xunit'
+    args = ['-v','--xunit-file=%s' % xml_results_filename]
+    plugins = [Xunit(), Skip()]
+    suitepath = os.path.join(support, 'issue700')
+
+    def runTest(self):
+        print str(self.output)
+        f = open(xml_results_filename,'r')
+        result = f.read()
+        f.close()
+        print result
+        assert 'tests="1" errors="0" failures="0" skip="0"' in result
+        assert 'line1\n' in result
+        assert 'line2\n' in result

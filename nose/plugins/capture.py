@@ -29,7 +29,7 @@ class Capture(Plugin):
     enabled = True
     env_opt = 'NOSE_NOCAPTURE'
     name = 'capture'
-    score = 500
+    score = 1600
 
     def __init__(self):
         self.stdout = []
@@ -86,10 +86,15 @@ class Capture(Plugin):
         return self.formatError(test, err)
 
     def addCaptureToErr(self, ev, output):
-        if isinstance(ev, Exception):
+        if isinstance(ev, BaseException):
             if hasattr(ev, '__unicode__'):
                 # 2.6+
-                ev = unicode(ev)
+                try:
+                    ev = unicode(ev)
+                except UnicodeDecodeError:
+                    # We need a unicode string... take our best shot at getting,
+                    # since we don't know what the original encoding is in.
+                    ev = str(ev).decode('utf8', 'replace')
             else:
                 # 2.5-
                 if not hasattr(ev, 'message'):
@@ -101,6 +106,8 @@ class Capture(Plugin):
                     not isinstance(msg, unicode)):
                     msg = msg.decode('utf8', 'replace')
                 ev = u'%s: %s' % (ev.__class__.__name__, msg)
+        elif not isinstance(ev, basestring):
+            ev = repr(ev)
         if not isinstance(output, unicode):
             output = output.decode('utf8', 'replace')
         return u'\n'.join([ev, ln(u'>> begin captured stdout <<'),

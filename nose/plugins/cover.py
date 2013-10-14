@@ -5,7 +5,7 @@ imported after the start of the test run, excluding modules that match
 testMatch. If you want to include those modules too, use the ``--cover-tests``
 switch, or set the NOSE_COVER_TESTS environment variable to a true value. To
 restrict the coverage report to modules from a particular package or packages,
-use the ``--cover-packages`` switch or the NOSE_COVER_PACKAGES environment
+use the ``--cover-package`` switch or the NOSE_COVER_PACKAGE environment
 variable.
 
 .. _coverage: http://www.nedbatchelder.com/code/modules/coverage.html
@@ -13,6 +13,7 @@ variable.
 import logging
 import re
 import sys
+import StringIO
 from nose.plugins.base import Plugin
 from nose.util import src, tolist
 
@@ -27,6 +28,7 @@ class Coverage(Plugin):
     coverPackages = None
     coverInstance = None
     coverErase = False
+    coverMinPercentage = None
     score = 200
     status = {}
 
@@ -51,6 +53,11 @@ class Coverage(Plugin):
                           default=env.get('NOSE_COVER_TESTS'),
                           help="Include test modules in coverage report "
                           "[NOSE_COVER_TESTS]")
+        parser.add_option("--cover-min-percentage", action="store",
+                          dest="cover_min_percentage",
+                          default=env.get('NOSE_COVER_MIN_PERCENTAGE'),
+                          help="Minimum percentage of coverage for tests"
+                          "to pass [NOSE_COVER_MIN_PERCENTAGE]")
         parser.add_option("--cover-inclusive", action="store_true",
                           dest="cover_inclusive",
                           default=env.get('NOSE_COVER_INCLUSIVE'),
@@ -97,6 +104,8 @@ class Coverage(Plugin):
         if self.enabled:
             try:
                 import coverage
+                if not hasattr(coverage, 'coverage'):
+                    raise ImportError("Unable to import coverage module")
             except ImportError:
                 log.error("Coverage not available: "
                           "unable to import coverage module")
@@ -107,7 +116,11 @@ class Coverage(Plugin):
         self.coverTests = options.cover_tests
         self.coverPackages = []
         if options.cover_packages:
-            for pkgs in [tolist(x) for x in options.cover_packages]:
+            if isinstance(options.cover_packages, (list, tuple)):
+                cover_packages = options.cover_packages
+            else:
+                cover_packages = [options.cover_packages]
+            for pkgs in [tolist(x) for x in cover_packages]:
                 self.coverPackages.extend(pkgs)
         self.coverInclusive = options.cover_inclusive
         if self.coverPackages:
@@ -119,6 +132,8 @@ class Coverage(Plugin):
             log.debug('Will put HTML coverage report in %s', self.coverHtmlDir)
         self.coverBranches = options.cover_branches
         self.coverXmlFile = None
+        if options.cover_min_percentage:
+            self.coverMinPercentage = int(options.cover_min_percentage.rstrip('%'))
         if options.cover_xml:
             self.coverXmlFile = options.cover_xml_file
             log.debug('Will put XML coverage report in %s', self.coverXmlFile)
@@ -160,6 +175,31 @@ class Coverage(Plugin):
         if self.coverXmlFile:
             log.debug("Generating XML coverage report")
             self.coverInstance.xml_report(modules, self.coverXmlFile)
+
+        # make sure we have minimum required coverage
+        if self.coverMinPercentage:
+            f = StringIO.StringIO()
+            self.coverInstance.report(modules, file=f)
+
+            multiPackageRe = (r'-------\s\w+\s+\d+\s+\d+(?:\s+\d+\s+\d+)?'
+                              r'\s+(\d+)%\s+\d*\s{0,1}$')
+            singlePackageRe = (r'-------\s[\w./]+\s+\d+\s+\d+(?:\s+\d+\s+\d+)?'
+                               r'\s+(\d+)%(?:\s+[-\d, ]+)\s{0,1}$')
+
+            m = re.search(multiPackageRe, f.getvalue())
+            if m is None:
+                m = re.search(singlePackageRe, f.getvalue())
+
+            if m:
+                percentage = int(m.groups()[0])
+                if percentage < self.coverMinPercentage:
+                    log.error('TOTAL Coverage did not reach minimum '
+                              'required: %d%%' % self.coverMinPercentage)
+                    sys.exit(1)
+            else:
+                log.error("No total percentage was found in coverage output, "
+                          "something went wrong.")
+
 
     def wantModuleCoverage(self, name, module):
         if not hasattr(module, '__file__'):

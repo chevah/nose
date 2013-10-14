@@ -7,7 +7,7 @@ import ConfigParser
 from optparse import OptionParser
 from nose.util import absdir, tolist
 from nose.plugins.manager import NoPlugins
-from warnings import warn
+from warnings import warn, filterwarnings
 
 log = logging.getLogger(__name__)
 
@@ -25,6 +25,8 @@ config_files = [
 # Windows and IronPython
 exe_allowed_platforms = ('win32', 'cli')
 
+filterwarnings("always", category=DeprecationWarning,
+               module=r'(.*\.)?nose\.config')
 
 class NoSuchOptionError(Exception):
     def __init__(self, name):
@@ -129,7 +131,10 @@ class ConfiguredDefaultsOptionParser(object):
         except ConfigError, exc:
             self._error(str(exc))
         else:
-            self._applyConfigurationToValues(self._parser, config, values)
+            try:
+                self._applyConfigurationToValues(self._parser, config, values)
+            except ConfigError, exc:
+                self._error(str(exc))
         return self._parser.parse_args(args, values)
 
 
@@ -313,6 +318,9 @@ class Config(object):
         self.firstPackageWins = options.firstPackageWins
         self.configureLogging()
 
+        if not options.byteCompile:
+            sys.dont_write_bytecode = True
+
         if options.where is not None:
             self.configureWhere(options.where)
 
@@ -361,7 +369,19 @@ class Config(object):
 
         # only add our default handler if there isn't already one there
         # this avoids annoying duplicate log messages.
-        if handler not in logger.handlers:
+        found = False
+        if self.debugLog:
+            debugLogAbsPath = os.path.abspath(self.debugLog)
+            for h in logger.handlers:
+                if type(h) == logging.FileHandler and \
+                        h.baseFilename == debugLogAbsPath:
+                    found = True
+        else:
+            for h in logger.handlers:
+                if type(h) == logging.StreamHandler and \
+                        h.stream == self.logStream:
+                    found = True
+        if not found:
             logger.addHandler(handler)
 
         # default level
@@ -413,6 +433,7 @@ class Config(object):
                      "the -w argument on the command line, or by using the "
                      "--tests argument in a configuration file.",
                      DeprecationWarning)
+                warned = True
             self.testNames.append(path)
 
     def default(self):
@@ -560,6 +581,11 @@ class Config(object):
             help="nose's importer will normally evict a package from sys."
             "modules if it sees a package with the same name in a different "
             "location. Set this option to disable that behavior.")
+        parser.add_option(
+            "--no-byte-compile",
+            action="store_false", default=True, dest="byteCompile",
+            help="Prevent nose from byte-compiling the source into .pyc files "
+            "while nose is scanning for and running tests.")
 
         self.plugins.loadPlugins()
         self.pluginOpts(parser)

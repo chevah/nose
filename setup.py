@@ -1,7 +1,7 @@
 import sys
 import os
 
-VERSION = '1.1.3'
+VERSION = '1.3.0'
 py_vers_tag = '-%s.%s' % sys.version_info[:2]
 
 test_dirs = ['functional_tests', 'unit_tests', os.path.join('doc','doc_tests'), 'nose']
@@ -48,6 +48,9 @@ try:
         from setuptools.command.easy_install import easy_install
 
         def wrap_write_script(self, script_name, contents, *arg, **kwarg):
+            if script_name.endswith('.exe'):
+                return self._write_script(script_name, contents, *arg, **kwarg)
+
             bad_text = re.compile(
                 "\n"
                 "sys.exit\(\n"
@@ -68,7 +71,8 @@ try:
 except ImportError:
     from distutils.core import setup
     addl_args = dict(
-        packages = ['nose', 'nose.ext', 'nose.plugins', 'nose.sphinx'],
+        packages = ['nose', 'nose.ext', 'nose.plugins', 'nose.sphinx',
+                    'nose.tools'],
         scripts = ['bin/nosetests'],
         )
 
@@ -107,7 +111,7 @@ setup(
                          'examples/*.py',
                          'examples/*/*.py']},
     classifiers = [
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)',
         'Natural Language :: English',
