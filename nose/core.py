@@ -239,7 +239,6 @@ class TestProgram(unittest.TestProgram):
         """
         Loop tests waiting for changes.
         """
-
         have_changes = False
         before_state = []
         run_tests = True
@@ -253,9 +252,10 @@ class TestProgram(unittest.TestProgram):
                 for test in before_state:
                     reload(test[0].context)
 
-                # Create a new suite so that we will reload setup
-                # and teardown.
+                # Create a new suite so that we will have the updated
+                # state and reload setup and teardown.
                 from nose.suite import ContextSuiteFactory
+                self.testLoader = defaultTestLoader(config=self.config)
                 self.testLoader.suiteClass = ContextSuiteFactory(
                     config=self.testLoader.config)
                 self.createTests()
@@ -265,11 +265,11 @@ class TestProgram(unittest.TestProgram):
                 have_changes = False
 
             if not have_changes:
-                print "Waiting for changes... (Ctr+C to quit)"
                 time.sleep(1)
                 continue
 
             self._doRunTests()
+            print "Waiting for changes... (Ctr+C to quit)"
 
     def _doRunTests(self):
         print "Starting new tests..."
