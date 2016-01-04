@@ -318,7 +318,10 @@ def resolve_name(name, module=None):
     obj = module
     log.debug("resolve: %s, %s, %s, %s", parts, name, obj, module)
     for part in parts:
-        obj = getattr(obj, part)
+        try:
+            obj = getattr(obj, part)
+        except AttributeError as error:
+            __import__(obj.__name__ + '.' + part)
     return obj
 
 
