@@ -24,7 +24,6 @@ __all__ = ['TestProgram', 'main', 'run', 'run_exit', 'runmodule', 'collector',
            'TextTestRunner']
 
 # normal - regular business
-# looping - running tests in main loop
 # exiting - running final teardown.
 NOSE = {'state': 'normal'}
 

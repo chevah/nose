@@ -440,7 +440,7 @@ def test_address(test):
 test_address.__test__ = False # do not collect
 
 
-def try_run(obj, names):
+def try_run(obj, names, attr=None):
     """Given a list of possible method names, try to run them with the
     provided object. Keep going until something works. Used to run
     setup/teardown methods for module, package, and function tests.
@@ -469,6 +469,21 @@ def try_run(obj, names):
                     log.debug("call fixture %s.%s(%s)", obj, name, obj)
                     return func(obj)
             log.debug("call fixture %s.%s", obj, name)
+
+            if not attr:
+                attr = []
+            for attribute in attr:
+                if attribute.startswith('!'):
+                    negate = True
+                    attribute = attribute[1:]
+                else:
+                    negate = False
+
+                value = getattr(func, attribute, False)
+                if value or negate:
+                    from nose.exc import SkipTest
+                    raise SkipTest('%s not selected' % (attribute,))
+
             return func()
 
 

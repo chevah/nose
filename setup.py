@@ -1,7 +1,7 @@
 import sys
 import os
 
-VERSION = '1.3.0.c7'
+VERSION = '1.3.0.chevah8'
 py_vers_tag = '-%s.%s' % sys.version_info[:2]
 
 test_dirs = ['functional_tests', 'unit_tests', os.path.join('doc','doc_tests'), 'nose']

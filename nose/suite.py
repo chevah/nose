@@ -311,7 +311,7 @@ class ContextSuite(LazySuite):
             names = self.moduleSetup
             if hasattr(context, '__path__'):
                 names = self.packageSetup + names
-        try_run(context, names)
+        try_run(context, names, attr=self.config.options.attr)
 
     def shortDescription(self):
         if self.context is None:
