@@ -480,7 +480,7 @@ def try_run(obj, names, attr=None):
                     negate = False
 
                 value = getattr(func, attribute, False)
-                if value or negate:
+                if value and negate:
                     from nose.exc import SkipTest
                     raise SkipTest('%s not selected' % (attribute,))
 
