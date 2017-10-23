@@ -440,6 +440,34 @@ def test_address(test):
 test_address.__test__ = False # do not collect
 
 
+def _check_attributes(func, arguments):
+    """
+    Check that --attr arguments and skip if we have a match on `func`.
+    """
+    if not arguments:
+        return
+
+    attributes = []
+    for argument in arguments:
+        for attribute in argument.split(','):
+            attribute = attribute.strip()
+            if not attribute:
+                continue
+            attributes.append(attribute)
+
+    for attribute in attributes:
+        if attribute.startswith('!'):
+            negate = True
+            attribute = attribute[1:]
+        else:
+            negate = False
+
+        value = getattr(func, attribute, False)
+        if value and negate:
+            from nose.exc import SkipTest
+            raise SkipTest('%s not selected' % (attribute,))
+
+
 def try_run(obj, names, attr=None):
     """Given a list of possible method names, try to run them with the
     provided object. Keep going until something works. Used to run
@@ -469,21 +497,7 @@ def try_run(obj, names, attr=None):
                     log.debug("call fixture %s.%s(%s)", obj, name, obj)
                     return func(obj)
             log.debug("call fixture %s.%s", obj, name)
-
-            if not attr:
-                attr = []
-            for attribute in attr:
-                if attribute.startswith('!'):
-                    negate = True
-                    attribute = attribute[1:]
-                else:
-                    negate = False
-
-                value = getattr(func, attribute, False)
-                if value and negate:
-                    from nose.exc import SkipTest
-                    raise SkipTest('%s not selected' % (attribute,))
-
+            _check_attributes(func, attr)
             return func()
 
 
