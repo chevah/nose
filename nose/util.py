@@ -495,6 +495,7 @@ def try_run(obj, names, attr=None):
                                         (name, obj))
                 if len(args):
                     log.debug("call fixture %s.%s(%s)", obj, name, obj)
+                    _check_attributes(func, attr)
                     return func(obj)
             log.debug("call fixture %s.%s", obj, name)
             _check_attributes(func, attr)
